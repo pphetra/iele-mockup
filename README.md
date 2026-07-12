@@ -97,7 +97,7 @@ DRY_RUN=1 ./scripts/run-daily-eval.sh
 ./scripts/run-daily-eval.sh --continue
 ```
 
-Details, cron, and `/loop` scheduling: **[agents/daily-eval/README.md](agents/daily-eval/README.md)**  
+Details, cron, and `/loop` scheduling: **[automate.md](automate.md)** · **[agents/daily-eval/README.md](agents/daily-eval/README.md)**  
 Agent instructions: **[agents/daily-eval/PROMPT.md](agents/daily-eval/PROMPT.md)**
 
 ### Upload a test
