@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
   <title>IELE Daily Mock Test</title>
   <style>
     :root {
@@ -125,19 +127,17 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      padding: 16px 20px;
+      padding: 18px 20px;
       border-bottom: 1px solid var(--border);
-      border-left: 5px solid var(--accent, var(--blue));
-      background: linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--accent, var(--blue)) 10%, white),
-        white 70%
-      );
+      border-left: 8px solid var(--accent, var(--blue));
+      background: color-mix(in srgb, var(--accent, var(--blue)) 12%, white);
     }
 
     .section-header h2 {
       margin: 0;
-      font-size: 1.1rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
       color: var(--accent, var(--blue));
     }
 
@@ -325,7 +325,7 @@
 <body>
 
   <h1>IELE Daily Mock Test</h1>
-  <p class="subtitle">60-minute practice test</p>
+  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2 (grouped)</span></p>
 
   <div id="start-screen" class="panel">
     <p>Today’s test includes grammar, vocabulary, reading, and one writing task.</p>
