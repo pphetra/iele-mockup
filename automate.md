@@ -138,6 +138,29 @@ Interval examples: `60s` (min), `5m`, `2h`, `1d`.
 
 ## Fully automatic schedules
 
+### Codex scheduled coordinator (configured)
+
+A Codex local scheduled task, **IELE daily evaluation coordinator**, runs every
+day at **21:00 Asia/Bangkok** in this repository. It is the preferred schedule
+when Codex is available on this Mac.
+
+The coordinator is deliberately separate from the Grok coach:
+
+1. Performs a quiet preflight (`.env`, Grok CLI, runner, and prompt file).
+2. Starts Grok only through `./scripts/run-daily-eval.sh --continue`.
+3. Validates the newly produced test JSON and coach artifacts.
+4. Reads the live test through the authenticated admin endpoint and compares it
+   with the generated/uploaded test.
+5. Reports `HEALTHY` only when generation, upload, and the live-state check all
+   agree; otherwise it reports `ATTENTION` with the failing checkpoint and a
+   safe next action. It never silently uploads a replacement test after a
+   failure.
+
+The schedule runs on the local Mac, so it still needs the machine to be awake,
+the Grok CLI logged in, and the repository's `.env` available. Its task result
+is the daily coordinator report; it does not expose secrets or full student
+history.
+
 ### macOS / Linux cron
 
 ```bash
