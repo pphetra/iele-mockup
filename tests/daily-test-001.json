@@ -1,0 +1,206 @@
+{
+  "action": "upload_test",
+  "questions": [
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 1: Choose the correct option.\n\nIf she _____ harder last semester, she would have passed the exam.",
+      "options": ["studied", "had studied", "has studied", "would study"],
+      "correct": "had studied"
+    },
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 2: Choose the correct option.\n\nNeither the teacher nor the students _____ ready for the surprise quiz.",
+      "options": ["was", "were", "is", "be"],
+      "correct": "were"
+    },
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 3: Choose the correct option.\n\nThe report, along with the appendixes, _____ submitted yesterday.",
+      "options": ["were", "have been", "was", "are"],
+      "correct": "was"
+    },
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 4: Choose the correct option.\n\nI wish I _____ more time to revise before the interview.",
+      "options": ["have", "had", "will have", "am having"],
+      "correct": "had"
+    },
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 5: Choose the correct option.\n\nShe asked me where _____ the previous evening.",
+      "options": ["did I go", "I had gone", "had I gone", "I have gone"],
+      "correct": "I had gone"
+    },
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 6: Choose the correct option.\n\nBy the time we arrive, the lecture _____.",
+      "options": ["will start", "starts", "will have started", "is starting"],
+      "correct": "will have started"
+    },
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 7: Choose the correct option.\n\nIt is essential that every student _____ the form carefully.",
+      "options": ["fills", "fill", "filled", "filling"],
+      "correct": "fill"
+    },
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 8: Choose the correct option.\n\nThe more you practice speaking, _____ confident you become.",
+      "options": ["more", "the more", "most", "the most"],
+      "correct": "the more"
+    },
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 9: Choose the correct option.\n\nHe is used to _____ early for morning classes.",
+      "options": ["get up", "getting up", "got up", "gets up"],
+      "correct": "getting up"
+    },
+    {
+      "type": "mcq",
+      "section": "grammar",
+      "question": "Grammar 10: Choose the correct option.\n\nNot only _____ late, but he also forgot his assignment.",
+      "options": ["he was", "was he", "he is", "is he"],
+      "correct": "was he"
+    },
+    {
+      "type": "mcq",
+      "section": "vocabulary",
+      "question": "Vocabulary 1: Choose the word closest in meaning to the underlined word.\n\nThe professor's explanation was very __lucid__, so everyone understood the topic.",
+      "underline": "lucid",
+      "options": ["confusing", "clear", "lengthy", "boring"],
+      "correct": "clear"
+    },
+    {
+      "type": "mcq",
+      "section": "vocabulary",
+      "question": "Vocabulary 2: Choose the best word to complete the sentence.\n\nMany students find it difficult to _____ between similar-sounding words.",
+      "options": ["distinguish", "extinguish", "relinquish", "astonish"],
+      "correct": "distinguish"
+    },
+    {
+      "type": "mcq",
+      "section": "vocabulary",
+      "question": "Vocabulary 3: Choose the best word to complete the sentence.\n\nThe university decided to _____ the old language lab with modern equipment.",
+      "options": ["replace", "replay", "reply", "repeat"],
+      "correct": "replace"
+    },
+    {
+      "type": "mcq",
+      "section": "vocabulary",
+      "question": "Vocabulary 4: Choose the word closest in meaning to the underlined word.\n\nHer argument was __compelling__ and persuaded most of the audience.",
+      "underline": "compelling",
+      "options": ["weak", "convincing", "amusing", "complicated"],
+      "correct": "convincing"
+    },
+    {
+      "type": "mcq",
+      "section": "vocabulary",
+      "question": "Vocabulary 5: Choose the best word to complete the sentence.\n\nGood time management is _____ for success in intensive language courses.",
+      "options": ["optional", "crucial", "decorative", "accidental"],
+      "correct": "crucial"
+    },
+    {
+      "type": "mcq",
+      "section": "vocabulary",
+      "question": "Vocabulary 6: Choose the word that is the opposite of the underlined word.\n\nThe instructions were __ambiguous__, so students asked many questions.",
+      "underline": "ambiguous",
+      "options": ["unclear", "precise", "long", "difficult"],
+      "correct": "precise"
+    },
+    {
+      "type": "mcq",
+      "section": "vocabulary",
+      "question": "Vocabulary 7: Choose the best word to complete the sentence.\n\nAfter reviewing the draft, the tutor asked the student to _____ the conclusion.",
+      "options": ["revise", "reverse", "revolve", "reveal"],
+      "correct": "revise"
+    },
+    {
+      "type": "mcq",
+      "section": "vocabulary",
+      "question": "Vocabulary 8: Choose the best collocation.\n\nShe made a _____ effort to improve her writing over the summer.",
+      "options": ["hard", "strong", "heavy", "deep"],
+      "correct": "strong"
+    },
+    {
+      "type": "mcq",
+      "section": "reading",
+      "question": "Reading Passage\n\nMany universities now require students to take an English proficiency exam before admission. These tests usually measure reading, writing, listening, and speaking. However, recent research suggests that daily practice may improve scores more effectively than occasional long study sessions.\n\nAccording to language experts, short and regular study habits help learners retain vocabulary and grammar patterns. For example, practicing for 45–60 minutes every day can be more useful than studying for five hours only once a week. Consistency also reduces test anxiety because students become familiar with question types.\n\nTechnology has made daily practice easier. Online platforms provide timed exercises, instant feedback, and progress tracking. Still, experts warn that technology alone is not enough. Students should also review mistakes carefully and ask teachers for guidance on weak areas. Without reflection, repeated practice may simply reinforce errors.\n\nParents and teachers can support learners by helping them set realistic goals. A clear weekly plan—such as two grammar days, two reading days, one writing day, and one review day—can make preparation more manageable. Ultimately, success depends less on last-minute effort and more on steady improvement over time.\n\n---\nReading 1: What is the main idea of the passage?",
+      "options": [
+        "English exams are unnecessary for university admission.",
+        "Daily practice is more effective than irregular long study sessions.",
+        "Technology can completely replace teachers.",
+        "Students should only study grammar."
+      ],
+      "correct": "Daily practice is more effective than irregular long study sessions."
+    },
+    {
+      "type": "mcq",
+      "section": "reading",
+      "question": "Reading 2 (same passage): According to the passage, why can daily practice reduce test anxiety?",
+      "options": [
+        "It guarantees a perfect score.",
+        "It makes exams shorter.",
+        "Students become familiar with question types.",
+        "Parents take the test for them."
+      ],
+      "correct": "Students become familiar with question types."
+    },
+    {
+      "type": "mcq",
+      "section": "reading",
+      "question": "Reading 3 (same passage): What do experts say about technology?",
+      "options": [
+        "It is useless for language learning.",
+        "It is helpful but not enough by itself.",
+        "It should replace all classroom teaching.",
+        "It only helps with listening skills."
+      ],
+      "correct": "It is helpful but not enough by itself."
+    },
+    {
+      "type": "mcq",
+      "section": "reading",
+      "question": "Reading 4 (same passage): What may happen if students practice without reviewing mistakes?",
+      "options": [
+        "They will improve faster.",
+        "They may reinforce errors.",
+        "They will never feel anxious.",
+        "They will finish the exam early."
+      ],
+      "correct": "They may reinforce errors."
+    },
+    {
+      "type": "mcq",
+      "section": "reading",
+      "question": "Reading 5 (same passage): Which weekly plan is mentioned as an example?",
+      "options": [
+        "Only writing every day",
+        "Two grammar days, two reading days, one writing day, and one review day",
+        "One long session on the weekend only",
+        "Listening practice five times a day"
+      ],
+      "correct": "Two grammar days, two reading days, one writing day, and one review day"
+    },
+    {
+      "type": "mcq",
+      "section": "reading",
+      "question": "Reading 6 (same passage): The word \"retain\" in paragraph 2 is closest in meaning to:",
+      "options": ["forget", "keep", "ignore", "translate"],
+      "correct": "keep"
+    },
+    {
+      "type": "writing",
+      "section": "writing",
+      "question": "Writing Task (about 20–25 minutes)\n\nSome people believe that students should practice English every day for short periods. Others think long study sessions a few times a week are better.\n\nWrite an essay of about 150–200 words.\n- Give your opinion\n- Support it with reasons and examples\n- Write in clear paragraphs\n\nTip: Check grammar, vocabulary, and organization before you finish."
+    }
+  ]
+}

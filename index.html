@@ -205,6 +205,21 @@
       white-space: pre-wrap;
     }
 
+    /* Target vocabulary word */
+    .target-word,
+    u.target-word {
+      font-style: normal;
+      font-weight: 800;
+      color: #1e3a8a;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+      text-decoration-color: var(--blue);
+      background: #e8f0fe;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
     .q-passage {
       margin-bottom: 12px;
       padding: 12px 14px;
@@ -389,7 +404,7 @@
 <body>
 
   <h1>IELE Daily Mock Test</h1>
-  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2.3</span></p>
+  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2.4</span></p>
 
   <div id="start-screen" class="panel">
     <p>Today’s test includes grammar, vocabulary, reading, and one writing task.</p>
@@ -515,12 +530,12 @@
           const parsed = formatQuestionDisplay(q);
           let bodyHtml = "";
           if (parsed.passage) {
-            bodyHtml += `<div class="q-passage">${escapeHtml(parsed.passage)}</div>`;
+            bodyHtml += `<div class="q-passage">${renderRichText(parsed.passage, q)}</div>`;
           }
           if (parsed.instruction) {
             bodyHtml += `<div class="q-instruction">${escapeHtml(parsed.instruction)}</div>`;
           }
-          bodyHtml += `<div class="q-stem">${escapeHtml(parsed.stem)}</div>`;
+          bodyHtml += `<div class="q-stem">${renderRichText(parsed.stem, q)}</div>`;
 
           div.innerHTML = `
             <div class="q-top">
@@ -668,10 +683,15 @@
      *   "Vocabulary 4: Choose the word closest in meaning to the underlined word."
      * then usually a blank line and the real stem.
      * Section headers already show Grammar/Vocabulary/etc., so strip that noise.
+     *
+     * Underline targets:
+     *   - q.underline: "lucid"  (preferred)
+     *   - or inline markers: __lucid__
      */
     function formatQuestionDisplay(q) {
       let raw = String(q.question || "").replace(/\r\n/g, "\n").trim();
       let passage = "";
+      let instruction = "";
       let stem = raw;
 
       // 1) Reading items that embed the full passage
@@ -700,19 +720,25 @@
         return { passage: "", instruction: "", stem: stem || raw };
       }
 
-      // 3) Standard pattern:
-      //    "Vocabulary 4: Choose the word closest …\n\nHer argument was compelling…"
-      //    "Grammar 1: Choose the correct option.\n\nIf she _____ harder…"
-      //    "Reading 3 (same passage): What do experts say about technology?"
+      // 3) Standard: strip "Vocabulary 1:" then split instruction vs stem
       stem = stripSectionPrefix(raw);
 
-      // Drop the fixed instruction paragraph; keep only the real stem body.
-      // Instruction = first block after "Section N:", body = remaining blocks.
-      if (stem.includes("\n\n")) {
+      // Handles both "\n\n" and single "\n" after the Choose… line
+      const splitInstr = stem.match(
+        /^(Choose[^\n]+|Select[^\n]+)\s*\n+([\s\S]+)$/i
+      );
+      if (splitInstr) {
+        const head = splitInstr[1].trim();
+        const body = splitInstr[2].trim();
+        // Keep useful instruction for underline-type items; drop generic grammar boilerplate
+        if (/underlined word/i.test(head)) {
+          instruction = head; // e.g. "Choose the word closest in meaning to the underlined word."
+        }
+        stem = body;
+      } else if (stem.includes("\n\n")) {
         const blocks = stem.split(/\n\n+/);
         const head = blocks[0].trim();
         const body = blocks.slice(1).join("\n\n").trim();
-        // Head is the fixed "Choose …" instruction (no blank line blanks / no fill-in)
         const looksLikeInstruction =
           body &&
           head.length > 0 &&
@@ -720,11 +746,11 @@
           !head.includes("_____") &&
           /^(choose|select|pick|find|which|what|complete)\b/i.test(head);
         if (looksLikeInstruction) {
+          if (/underlined word/i.test(head)) instruction = head;
           stem = body;
         }
       }
 
-      // Safety: if prefix somehow remains mid-string at line start
       stem = stem
         .split("\n")
         .map((line) => stripSectionPrefix(line))
@@ -732,11 +758,39 @@
         .trim();
 
       if (!stem) stem = stripSectionPrefix(raw) || raw;
-      return { passage, instruction: "", stem };
+      return { passage, instruction, stem };
     }
 
     function stripSectionPrefix(text) {
       return String(text || "").replace(SECTION_PREFIX_RE, "").trim();
+    }
+
+    /** Escape HTML and render __word__ / q.underline as underlined target. */
+    function renderRichText(text, q) {
+      let s = String(text || "");
+
+      // Apply q.underline if not already marked with __word__
+      const target = (q && q.underline) || "";
+      if (target && !s.includes(`__${target}__`)) {
+        const re = new RegExp(`\\b(${escapeRegExp(target)})\\b`, "i");
+        s = s.replace(re, "__$1__");
+      }
+
+      // Tokenize __marked__ segments
+      const parts = s.split(/(__[^_\n]+__)/g);
+      return parts
+        .map((part) => {
+          const m = part.match(/^__([^_]+)__$/);
+          if (m) {
+            return `<u class="target-word">${escapeHtml(m[1])}</u>`;
+          }
+          return escapeHtml(part);
+        })
+        .join("");
+    }
+
+    function escapeRegExp(s) {
+      return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
 
     function escapeHtml(s) {
