@@ -194,8 +194,37 @@
 
     .q-text {
       flex: 1;
-      font-weight: 500;
+      min-width: 0;
+    }
+
+    .q-stem {
+      font-weight: 600;
+      font-size: 1.02rem;
+      line-height: 1.5;
+      color: var(--text);
       white-space: pre-wrap;
+    }
+
+    .q-passage {
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-weight: 400;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #334155;
+      white-space: pre-wrap;
+    }
+
+    .q-instruction {
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: none;
+      letter-spacing: 0;
     }
 
     /* Options — letter badge only (native radio hidden) */
@@ -360,7 +389,7 @@
 <body>
 
   <h1>IELE Daily Mock Test</h1>
-  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2.1</span></p>
+  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2.2</span></p>
 
   <div id="start-screen" class="panel">
     <p>Today’s test includes grammar, vocabulary, reading, and one writing task.</p>
@@ -483,11 +512,20 @@
           div.className = "question" + (q.type === "writing" ? " question-writing" : "");
           div.dataset.index = String(index);
 
-          const text = escapeHtml(q.question || "");
+          const parsed = formatQuestionDisplay(q);
+          let bodyHtml = "";
+          if (parsed.passage) {
+            bodyHtml += `<div class="q-passage">${escapeHtml(parsed.passage)}</div>`;
+          }
+          if (parsed.instruction) {
+            bodyHtml += `<div class="q-instruction">${escapeHtml(parsed.instruction)}</div>`;
+          }
+          bodyHtml += `<div class="q-stem">${escapeHtml(parsed.stem)}</div>`;
+
           div.innerHTML = `
             <div class="q-top">
               <span class="q-num">${globalNum}</span>
-              <div class="q-text">${text}</div>
+              <div class="q-text">${bodyHtml}</div>
             </div>
           `;
 
@@ -618,6 +656,88 @@
       } catch (err) {
         console.warn("Could not save result:", err);
       }
+    }
+
+    /**
+     * Strip redundant "Grammar 1:" / "Vocabulary 2:" labels that already
+     * appear in the section header, and split passage vs stem when present.
+     */
+    function formatQuestionDisplay(q) {
+      let raw = String(q.question || "").replace(/\r\n/g, "\n").trim();
+      const section = (q.section || "").toLowerCase();
+
+      // Remove leading section labels: "Grammar 1:", "Vocabulary 3:", "Reading 2 (same passage):"
+      raw = raw.replace(
+        /^(Grammar|Vocabulary|Reading|Writing)(\s+\d+)?(\s*\([^)]*\))?\s*:\s*/i,
+        ""
+      );
+
+      // Writing task header line
+      raw = raw.replace(/^Writing\s+Task(\s*\([^)]*\))?\s*/i, "").trim();
+
+      let passage = "";
+      let stem = raw;
+      let instruction = "";
+
+      // Reading: "Reading Passage\n\n...passage...\n\n---\nReading 1: question"
+      // or passage then question after ---
+      if (/^Reading\s+Passage\b/i.test(raw) || raw.includes("\n---\n")) {
+        let rest = raw.replace(/^Reading\s+Passage\s*/i, "").trim();
+        const parts = rest.split(/\n---\n/);
+        if (parts.length >= 2) {
+          passage = parts[0].trim();
+          stem = parts.slice(1).join("\n---\n").trim();
+          // Clean "Reading 1:" again on the stem side
+          stem = stem.replace(
+            /^(Grammar|Vocabulary|Reading|Writing)(\s+\d+)?(\s*\([^)]*\))?\s*:\s*/i,
+            ""
+          );
+        } else {
+          // Fallback: first long block vs last line as question
+          const paras = rest.split(/\n\n+/);
+          if (paras.length >= 2) {
+            stem = paras.pop().trim();
+            passage = paras.join("\n\n").trim();
+            stem = stem.replace(
+              /^(Grammar|Vocabulary|Reading|Writing)(\s+\d+)?(\s*\([^)]*\))?\s*:\s*/i,
+              ""
+            );
+          }
+        }
+      } else if (raw.includes("\n\n")) {
+        // Grammar/vocab style: "Choose the correct option.\n\nActual stem"
+        const parts = raw.split(/\n\n+/);
+        const first = parts[0].trim();
+        const boilerplate = /^(choose the correct option\.?|choose the best word.*|choose the word.*|choose the best collocation\.?)$/i;
+        if (parts.length >= 2 && boilerplate.test(first)) {
+          // Skip repetitive instruction — section already implies MCQ
+          stem = parts.slice(1).join("\n\n").trim();
+        } else if (parts.length >= 2 && first.length < 80 && !first.includes("_____")) {
+          instruction = first;
+          stem = parts.slice(1).join("\n\n").trim();
+        }
+      }
+
+      // Final cleanup: if stem still starts with "Choose the correct option." on same line
+      stem = stem
+        .replace(/^Choose the correct option\.?\s*/i, "")
+        .replace(/^(Grammar|Vocabulary|Reading|Writing)(\s+\d+)?(\s*\([^)]*\))?\s*:\s*/i, "")
+        .trim();
+
+      // For non-reading MCQ with empty stem fallback
+      if (!stem) stem = raw;
+
+      // Writing: keep helpful structure without "Writing Task" leak
+      if (q.type === "writing" && !instruction && stem.length > 40) {
+        // leave stem as-is after stripping Writing Task
+      }
+
+      // Don't show section name as instruction
+      if (instruction && /^(grammar|vocabulary|reading|writing)\b/i.test(instruction)) {
+        instruction = "";
+      }
+
+      return { passage, instruction, stem, section };
     }
 
     function escapeHtml(s) {
