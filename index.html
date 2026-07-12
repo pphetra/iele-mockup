@@ -384,6 +384,38 @@
       margin: 8px 0 16px;
     }
 
+    .timing-table-wrap {
+      overflow-x: auto;
+      margin: 12px 0 18px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .timing-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    .timing-table th,
+    .timing-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .timing-table th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .timing-table tr:last-child td { border-bottom: 0; }
+    .timing-table .slow { color: #b45309; font-weight: 700; }
+    .timing-table .fast { color: #047857; }
+    .timing-table .wrong { color: #b91c1c; }
+
     .hidden { display: none !important; }
 
     .loading {
@@ -404,7 +436,7 @@
 <body>
 
   <h1>IELE Daily Mock Test</h1>
-  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2.4</span></p>
+  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2.5</span></p>
 
   <div id="start-screen" class="panel">
     <p>Today’s test includes grammar, vocabulary, reading, and one writing task.</p>
@@ -426,7 +458,23 @@
   <div id="results-screen" class="hidden panel">
     <h2 style="margin-top:0">Test Completed ✅</h2>
     <div id="score-line" class="score-line"></div>
-    <p>Copy the JSON below and send it if needed:</p>
+    <h3 style="margin: 16px 0 8px; font-size: 1rem;">Time per question</h3>
+    <div class="timing-table-wrap">
+      <table class="timing-table" id="timing-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Section</th>
+            <th>Time</th>
+            <th>First answer</th>
+            <th>Changes</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="timing-tbody"></tbody>
+      </table>
+    </div>
+    <p>Full JSON (includes timestamps) — copy if needed:</p>
     <pre id="results-json"></pre>
     <button onclick="location.reload()">Back to Start</button>
   </div>
@@ -448,6 +496,13 @@
     let timeLeft = 3600;
     let timerInterval;
     let submitted = false;
+
+    // Per-question timing for analysis
+    let testStartedAt = null;       // epoch ms
+    let questionTiming = {};        // index -> timing record
+    let visibleSince = {};          // index -> epoch ms when entered viewport
+    let timingObserver = null;
+    let writingLogTimers = {};      // debounce writing answer events
 
     async function startTest() {
       const startBtn = document.querySelector("#start-screen button");
@@ -473,7 +528,9 @@
 
         document.getElementById("start-screen").classList.add("hidden");
         document.getElementById("test-screen").classList.remove("hidden");
+        initQuestionTiming();
         renderQuestions();
+        setupTimingObserver();
         updateProgress();
         startTimer();
       } catch (err) {
@@ -481,6 +538,266 @@
         startBtn.textContent = "Start Today's Test";
         alert("Could not start test: " + err.message);
       }
+    }
+
+    function initQuestionTiming() {
+      testStartedAt = Date.now();
+      questionTiming = {};
+      visibleSince = {};
+      writingLogTimers = {};
+      currentQuestions.forEach((q, i) => {
+        questionTiming[i] = {
+          index: i,
+          section: (q.section || "other").toLowerCase(),
+          type: q.type || "mcq",
+          first_viewed_at: null,
+          last_viewed_at: null,
+          first_answered_at: null,
+          last_answered_at: null,
+          answer_change_count: 0,
+          dwell_ms: 0,
+          answer_events: [],
+        };
+      });
+    }
+
+    function setupTimingObserver() {
+      if (timingObserver) timingObserver.disconnect();
+
+      timingObserver = new IntersectionObserver(
+        (entries) => {
+          const now = Date.now();
+          entries.forEach((entry) => {
+            const index = Number(entry.target.dataset.index);
+            if (Number.isNaN(index) || !questionTiming[index]) return;
+            const meta = questionTiming[index];
+
+            if (entry.isIntersecting) {
+              if (!meta.first_viewed_at) {
+                meta.first_viewed_at = new Date(now).toISOString();
+              }
+              meta.last_viewed_at = new Date(now).toISOString();
+              if (visibleSince[index] == null) {
+                visibleSince[index] = now;
+              }
+            } else if (visibleSince[index] != null) {
+              meta.dwell_ms += now - visibleSince[index];
+              meta.last_viewed_at = new Date(now).toISOString();
+              delete visibleSince[index];
+            }
+          });
+        },
+        { threshold: 0.45, rootMargin: "0px 0px -10% 0px" }
+      );
+
+      document.querySelectorAll(".question[data-index]").forEach((el) => {
+        timingObserver.observe(el);
+      });
+    }
+
+    function flushVisibleDwell() {
+      const now = Date.now();
+      Object.keys(visibleSince).forEach((k) => {
+        const index = Number(k);
+        if (questionTiming[index] && visibleSince[index] != null) {
+          questionTiming[index].dwell_ms += now - visibleSince[index];
+          questionTiming[index].last_viewed_at = new Date(now).toISOString();
+        }
+      });
+      visibleSince = {};
+    }
+
+    function recordAnswerEvent(index, value, { force = false } = {}) {
+      const meta = questionTiming[index];
+      if (!meta) return;
+      const now = Date.now();
+      const iso = new Date(now).toISOString();
+      const prev = answers[index];
+
+      if (!meta.first_answered_at) meta.first_answered_at = iso;
+      meta.last_answered_at = iso;
+
+      if (prev !== undefined && prev !== value) {
+        meta.answer_change_count += 1;
+      }
+
+      const isWriting = meta.type === "writing";
+      const compactValue =
+        typeof value === "string" && value.length > 120
+          ? value.slice(0, 120) + "…"
+          : value;
+
+      const pushEvent = () => {
+        meta.answer_events.push({
+          at: iso,
+          elapsed_s: Math.round((now - testStartedAt) / 1000),
+          value: isWriting
+            ? { chars: String(value || "").length, preview: compactValue }
+            : compactValue,
+        });
+        // Cap event log size (keep first + last many)
+        if (meta.answer_events.length > 40) {
+          meta.answer_events = [
+            meta.answer_events[0],
+            ...meta.answer_events.slice(-39),
+          ];
+        }
+      };
+
+      if (isWriting && !force) {
+        // Debounce writing keystrokes — log activity every 3s
+        clearTimeout(writingLogTimers[index]);
+        writingLogTimers[index] = setTimeout(pushEvent, 3000);
+      } else {
+        pushEvent();
+      }
+    }
+
+    function buildTimingPayload() {
+      flushVisibleDwell();
+      const submittedAt = Date.now();
+      const items = currentQuestions.map((q, i) => {
+        const t = questionTiming[i] || {};
+        const dwell_s = Math.round((t.dwell_ms || 0) / 1000);
+        const correct =
+          q.type === "mcq" ? answers[i] === q.correct : null;
+        return {
+          index: i,
+          question_no: i + 1,
+          section: t.section || q.section || "other",
+          type: t.type || q.type,
+          first_viewed_at: t.first_viewed_at,
+          last_viewed_at: t.last_viewed_at,
+          first_answered_at: t.first_answered_at,
+          last_answered_at: t.last_answered_at,
+          dwell_ms: t.dwell_ms || 0,
+          dwell_s,
+          answer_change_count: t.answer_change_count || 0,
+          answered: answers[i] != null && answers[i] !== "",
+          correct,
+          answer_events: t.answer_events || [],
+        };
+      });
+
+      // Section rollup
+      const bySection = {};
+      items.forEach((it) => {
+        const s = it.section || "other";
+        if (!bySection[s]) {
+          bySection[s] = {
+            questions: 0,
+            dwell_ms: 0,
+            answered: 0,
+            correct: 0,
+            mcq: 0,
+          };
+        }
+        bySection[s].questions += 1;
+        bySection[s].dwell_ms += it.dwell_ms;
+        if (it.answered) bySection[s].answered += 1;
+        if (it.type === "mcq") {
+          bySection[s].mcq += 1;
+          if (it.correct) bySection[s].correct += 1;
+        }
+      });
+      Object.keys(bySection).forEach((s) => {
+        bySection[s].dwell_s = Math.round(bySection[s].dwell_ms / 1000);
+        bySection[s].avg_dwell_s = bySection[s].questions
+          ? Math.round(bySection[s].dwell_s / bySection[s].questions)
+          : 0;
+      });
+
+      // Slowest / fastest MCQs for quick pattern scan
+      const mcqTimed = items
+        .filter((it) => it.type === "mcq" && it.dwell_s > 0)
+        .slice()
+        .sort((a, b) => b.dwell_s - a.dwell_s);
+
+      return {
+        started_at: new Date(testStartedAt).toISOString(),
+        submitted_at: new Date(submittedAt).toISOString(),
+        duration_s: Math.round((submittedAt - testStartedAt) / 1000),
+        questions: items,
+        by_section: bySection,
+        slowest: mcqTimed.slice(0, 5).map((it) => ({
+          question_no: it.question_no,
+          section: it.section,
+          dwell_s: it.dwell_s,
+          correct: it.correct,
+        })),
+        fastest: mcqTimed
+          .slice()
+          .reverse()
+          .slice(0, 5)
+          .map((it) => ({
+            question_no: it.question_no,
+            section: it.section,
+            dwell_s: it.dwell_s,
+            correct: it.correct,
+          })),
+      };
+    }
+
+    function formatDuration(seconds) {
+      const s = Math.max(0, Math.round(seconds || 0));
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return m > 0 ? `${m}m ${r}s` : `${r}s`;
+    }
+
+    function renderTimingTable(timing) {
+      const tbody = document.getElementById("timing-tbody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+      const dwells = timing.questions
+        .map((q) => q.dwell_s)
+        .filter((s) => s > 0);
+      const median =
+        dwells.length === 0
+          ? 0
+          : dwells.slice().sort((a, b) => a - b)[Math.floor(dwells.length / 2)];
+
+      timing.questions.forEach((q) => {
+        const tr = document.createElement("tr");
+        let result = "—";
+        let resultClass = "";
+        if (q.type === "mcq") {
+          if (!q.answered) {
+            result = "blank";
+            resultClass = "wrong";
+          } else if (q.correct) {
+            result = "✓";
+          } else {
+            result = "✗";
+            resultClass = "wrong";
+          }
+        } else {
+          result = q.answered ? "written" : "blank";
+        }
+
+        let timeClass = "";
+        if (q.dwell_s >= Math.max(median * 2, median + 30) && q.dwell_s >= 20) {
+          timeClass = "slow";
+        } else if (q.dwell_s > 0 && q.dwell_s <= 5 && q.type === "mcq") {
+          timeClass = "fast";
+        }
+
+        const firstAns = q.first_answered_at
+          ? formatDuration(
+              (new Date(q.first_answered_at) - new Date(timing.started_at)) / 1000
+            ) + " in"
+          : "—";
+
+        tr.innerHTML = `
+          <td>${q.question_no}</td>
+          <td>${escapeHtml(q.section)}</td>
+          <td class="${timeClass}">${formatDuration(q.dwell_s)}</td>
+          <td>${firstAns}</td>
+          <td>${q.answer_change_count}</td>
+          <td class="${resultClass}">${result}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
     function renderQuestions() {
@@ -562,7 +879,6 @@
               input.addEventListener("change", (e) => {
                 saveAnswer(index, e.target.value);
               });
-              // Clicking the whole row already toggles via label; ensure keyboard works
               opts.appendChild(label);
             });
             div.appendChild(opts);
@@ -572,6 +888,9 @@
             ta.rows = 10;
             ta.placeholder = "Write your essay here (150–200 words)…";
             ta.addEventListener("input", () => saveAnswer(index, ta.value));
+            ta.addEventListener("blur", () =>
+              saveAnswer(index, ta.value, { forceEvent: true })
+            );
             div.appendChild(ta);
 
             const hint = document.createElement("div");
@@ -588,8 +907,10 @@
       });
     }
 
-    function saveAnswer(index, value) {
-      if (index >= 0) answers[index] = value;
+    function saveAnswer(index, value, { forceEvent = false } = {}) {
+      if (index < 0) return;
+      recordAnswerEvent(index, value, { force: forceEvent });
+      answers[index] = value;
       updateProgress();
     }
 
@@ -622,6 +943,16 @@
       if (submitted) return;
       submitted = true;
       clearInterval(timerInterval);
+      if (timingObserver) timingObserver.disconnect();
+
+      // Flush any pending writing debounce logs
+      Object.keys(writingLogTimers).forEach((k) => {
+        clearTimeout(writingLogTimers[k]);
+        const i = Number(k);
+        if (answers[i] != null) {
+          recordAnswerEvent(i, answers[i], { force: true });
+        }
+      });
 
       let score = 0;
       let mcqTotal = 0;
@@ -641,6 +972,8 @@
       sectionScores.total = score;
       sectionScores.mcq_total = mcqTotal;
 
+      const timing = buildTimingPayload();
+
       const result = {
         test_date: new Date().toISOString().split("T")[0],
         score: score,
@@ -649,13 +982,16 @@
         weak_areas: Object.entries(sectionScores)
           .filter(([k, v]) => k !== "total" && k !== "mcq_total" && v.total > 0 && v.correct / v.total < 0.6)
           .map(([k]) => k),
+        // Per-question timestamps for parent analysis
+        timing,
       };
 
       document.getElementById("test-screen").classList.add("hidden");
       document.getElementById("results-screen").classList.remove("hidden");
       document.getElementById("score-line").textContent =
-        `MCQ score: ${score} / ${mcqTotal}` +
+        `MCQ score: ${score} / ${mcqTotal} · Total time ${formatDuration(timing.duration_s)}` +
         (result.weak_areas.length ? ` · Review: ${result.weak_areas.join(", ")}` : "");
+      renderTimingTable(timing);
       document.getElementById("results-json").textContent = JSON.stringify(result, null, 2);
 
       try {
