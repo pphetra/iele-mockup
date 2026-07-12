@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IELE Daily Mock Test</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 20px; line-height: 1.5; }
+    h1 { color: #1a73e8; }
+    .question { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    button { background: #1a73e8; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #1557b0; }
+    #timer { font-size: 2rem; font-weight: bold; color: #d93025; margin: 15px 0; }
+    textarea { width: 100%; height: 140px; padding: 10px; font-size: 15px; }
+    pre { background: #f1f3f4; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <h1>IELE Daily Mock Test</h1>
+  <p><strong>60-minute practice test</strong></p>
+
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <button onclick="startTest()">Start Today's Test</button>
+  </div>
+
+  <!-- Test Screen -->
+  <div id="test-screen" class="hidden">
+    <div id="timer">Time Left: <span id="time">60:00</span></div>
+    <div id="quiz"></div>
+    <button onclick="submitTest()" style="margin-top: 20px;">Submit Test</button>
+  </div>
+
+  <!-- Results Screen -->
+  <div id="results-screen" class="hidden">
+    <h2>Test Completed ✅</h2>
+    <p>Copy the JSON below and send it to me:</p>
+    <pre id="results-json"></pre>
+    <button onclick="location.reload()">Take New Test</button>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://mkrzdyyvyxoxorrkfzdq.supabase.co";
+    const PUBLISHABLE_KEY = "sb_publishable_7ZzFVSyYGKp0tuWYlFis4Q_MaJK7_0G";
+
+    let currentQuestions = [];
+    let answers = {};
+    let timeLeft = 3600;
+    let timerInterval;
+
+    async function startTest() {
+      document.getElementById("start-screen").classList.add("hidden");
+      document.getElementById("test-screen").classList.remove("hidden");
+
+      // Load current test from Supabase
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-current-test`, {
+        headers: { "apikey": PUBLISHABLE_KEY }
+      });
+      const data = await res.json();
+      currentQuestions = data.questions || [];
+
+      renderQuestions();
+      startTimer();
+    }
+
+    function renderQuestions() {
+      const container = document.getElementById("quiz");
+      container.innerHTML = "";
+
+      currentQuestions.forEach((q, index) => {
+        const div = document.createElement("div");
+        div.className = "question";
+        div.innerHTML = `<h3>${index + 1}. ${q.question}</h3>`;
+
+        if (q.type === "mcq") {
+          q.options.forEach(option => {
+            div.innerHTML += `
+              <label style="display:block; margin: 6px 0;">
+                <input type="radio" name="q${index}" value="${option}" 
+                       onchange="saveAnswer(${index}, this.value)"> ${option}
+              </label>`;
+          });
+        } else if (q.type === "writing") {
+          div.innerHTML += `<textarea placeholder="Write your answer..." 
+            onblur="saveAnswer(${index}, this.value)"></textarea>`;
+        }
+        container.appendChild(div);
+      });
+    }
+
+    function saveAnswer(index, value) {
+      answers[index] = value;
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        document.getElementById("time").textContent = 
+          `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+
+        if (timeLeft <= 0) submitTest();
+      }, 1000);
+    }
+
+    async function submitTest() {
+      clearInterval(timerInterval);
+      document.getElementById("test-screen").classList.add("hidden");
+
+      // Simple scoring (only counts MCQ)
+      let score = 0;
+      currentQuestions.forEach((q, i) => {
+        if (q.type === "mcq" && answers[i] === q.correct) score++;
+      });
+
+      const result = {
+        test_date: new Date().toISOString().split("T")[0],
+        score: score,
+        section_scores: { total: score },
+        answers: answers,
+        weak_areas: []
+      };
+
+      // Send to Supabase
+      await fetch(`${SUPABASE_URL}/functions/v1/submit-result`, {
+        method: "POST",
+        headers: {
+          "apikey": PUBLISHABLE_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(result)
+      });
+
+      // Show result
+      document.getElementById("results-screen").classList.remove("hidden");
+      document.getElementById("results-json").textContent = JSON.stringify(result, null, 2);
+    }
+  </script>
+</body>
+</html>
