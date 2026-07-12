@@ -198,11 +198,11 @@
       white-space: pre-wrap;
     }
 
-    /* Options */
+    /* Options — letter badge only (native radio hidden) */
     .options {
       display: grid;
-      gap: 8px;
-      margin-top: 14px;
+      gap: 10px;
+      margin-top: 16px;
       margin-left: 44px;
     }
 
@@ -211,49 +211,84 @@
     }
 
     .option {
+      position: relative;
       display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
       background: #fff;
       cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+      user-select: none;
     }
 
-    .option:hover { border-color: #b6cdf5; }
+    .option:hover {
+      border-color: #c5d8f7;
+      background: #fafcff;
+    }
 
     .option:has(input:checked) {
       border-color: var(--blue);
-      background: #e8f0fe;
+      background: #f0f6ff;
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
     }
 
+    /* Hide native radio; keep for accessibility + keyboard */
     .option input {
-      margin-top: 3px;
-      accent-color: var(--blue);
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      pointer-events: none;
     }
 
     .opt-letter {
       flex: 0 0 auto;
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      background: #f3f4f6;
-      font-size: 0.78rem;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid #d1d5db;
+      background: #fff;
+      font-size: 0.8rem;
       font-weight: 700;
       display: grid;
       place-items: center;
-      color: #4b5563;
-      margin-top: 1px;
+      color: #6b7280;
+      line-height: 1;
+      transition: all 0.15s;
+    }
+
+    .option:hover .opt-letter {
+      border-color: #93c5fd;
+      color: var(--blue);
     }
 
     .option:has(input:checked) .opt-letter {
+      border-color: var(--blue);
       background: var(--blue);
       color: #fff;
     }
 
-    .opt-text { flex: 1; }
+    .opt-text {
+      flex: 1;
+      font-size: 0.98rem;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .option:has(input:checked) .opt-text {
+      font-weight: 600;
+      color: #123a7a;
+    }
+
+    .option:focus-within {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18);
+    }
 
     /* Writing */
     .writing-box {
@@ -325,7 +360,7 @@
 <body>
 
   <h1>IELE Daily Mock Test</h1>
-  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2 (grouped)</span></p>
+  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2.1</span></p>
 
   <div id="start-screen" class="panel">
     <p>Today’s test includes grammar, vocabulary, reading, and one writing task.</p>
@@ -467,12 +502,14 @@
               label.htmlFor = id;
               label.innerHTML = `
                 <input id="${id}" type="radio" name="q${index}" value="${escapeAttr(option)}">
-                <span class="opt-letter">${letter}</span>
+                <span class="opt-letter" aria-hidden="true">${letter}</span>
                 <span class="opt-text">${escapeHtml(option)}</span>
               `;
-              label.querySelector("input").addEventListener("change", (e) => {
+              const input = label.querySelector("input");
+              input.addEventListener("change", (e) => {
                 saveAnswer(index, e.target.value);
               });
+              // Clicking the whole row already toggles via label; ensure keyboard works
               opts.appendChild(label);
             });
             div.appendChild(opts);
