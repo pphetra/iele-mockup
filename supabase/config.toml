@@ -1,0 +1,18 @@
+# Supabase local / deploy config (project: iele-mockup)
+# Docs: https://supabase.com/docs/guides/cli/config
+
+[project]
+# Optional: set after `supabase link`
+# id = "mkrzdyyvyxoxorrkfzdq"
+
+# Platform JWT gate must be off for publishable/secret/none auth modes
+# (package @supabase/server handles auth instead).
+
+[functions.get-current-test]
+verify_jwt = false
+
+[functions.submit-result]
+verify_jwt = false
+
+[functions.admin]
+verify_jwt = false
