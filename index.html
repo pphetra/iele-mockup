@@ -389,7 +389,7 @@
 <body>
 
   <h1>IELE Daily Mock Test</h1>
-  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2.2</span></p>
+  <p class="subtitle">60-minute practice test · <span id="ui-version" style="color:#0d9488">UI v2.3</span></p>
 
   <div id="start-screen" class="panel">
     <p>Today’s test includes grammar, vocabulary, reading, and one writing task.</p>
@@ -658,86 +658,85 @@
       }
     }
 
+    // Matches fixed authoring prefix, e.g.:
+    // "Grammar 1:", "Vocabulary 4:", "Reading 2 (same passage):"
+    const SECTION_PREFIX_RE =
+      /^(Grammar|Vocabulary|Reading|Writing)(\s+\d+)?(\s*\([^)]*\))?\s*:\s*/i;
+
     /**
-     * Strip redundant "Grammar 1:" / "Vocabulary 2:" labels that already
-     * appear in the section header, and split passage vs stem when present.
+     * Every stored question starts with a fixed prefix like:
+     *   "Vocabulary 4: Choose the word closest in meaning to the underlined word."
+     * then usually a blank line and the real stem.
+     * Section headers already show Grammar/Vocabulary/etc., so strip that noise.
      */
     function formatQuestionDisplay(q) {
       let raw = String(q.question || "").replace(/\r\n/g, "\n").trim();
-      const section = (q.section || "").toLowerCase();
-
-      // Remove leading section labels: "Grammar 1:", "Vocabulary 3:", "Reading 2 (same passage):"
-      raw = raw.replace(
-        /^(Grammar|Vocabulary|Reading|Writing)(\s+\d+)?(\s*\([^)]*\))?\s*:\s*/i,
-        ""
-      );
-
-      // Writing task header line
-      raw = raw.replace(/^Writing\s+Task(\s*\([^)]*\))?\s*/i, "").trim();
-
       let passage = "";
       let stem = raw;
-      let instruction = "";
 
-      // Reading: "Reading Passage\n\n...passage...\n\n---\nReading 1: question"
-      // or passage then question after ---
+      // 1) Reading items that embed the full passage
       if (/^Reading\s+Passage\b/i.test(raw) || raw.includes("\n---\n")) {
         let rest = raw.replace(/^Reading\s+Passage\s*/i, "").trim();
         const parts = rest.split(/\n---\n/);
         if (parts.length >= 2) {
           passage = parts[0].trim();
-          stem = parts.slice(1).join("\n---\n").trim();
-          // Clean "Reading 1:" again on the stem side
-          stem = stem.replace(
-            /^(Grammar|Vocabulary|Reading|Writing)(\s+\d+)?(\s*\([^)]*\))?\s*:\s*/i,
-            ""
-          );
+          stem = stripSectionPrefix(parts.slice(1).join("\n---\n").trim());
         } else {
-          // Fallback: first long block vs last line as question
           const paras = rest.split(/\n\n+/);
           if (paras.length >= 2) {
-            stem = paras.pop().trim();
+            stem = stripSectionPrefix(paras.pop().trim());
             passage = paras.join("\n\n").trim();
-            stem = stem.replace(
-              /^(Grammar|Vocabulary|Reading|Writing)(\s+\d+)?(\s*\([^)]*\))?\s*:\s*/i,
-              ""
-            );
           }
         }
-      } else if (raw.includes("\n\n")) {
-        // Grammar/vocab style: "Choose the correct option.\n\nActual stem"
-        const parts = raw.split(/\n\n+/);
-        const first = parts[0].trim();
-        const boilerplate = /^(choose the correct option\.?|choose the best word.*|choose the word.*|choose the best collocation\.?)$/i;
-        if (parts.length >= 2 && boilerplate.test(first)) {
-          // Skip repetitive instruction — section already implies MCQ
-          stem = parts.slice(1).join("\n\n").trim();
-        } else if (parts.length >= 2 && first.length < 80 && !first.includes("_____")) {
-          instruction = first;
-          stem = parts.slice(1).join("\n\n").trim();
+        return { passage, instruction: "", stem: stem || raw };
+      }
+
+      // 2) Writing task title line
+      if (/^Writing\s+Task\b/i.test(raw)) {
+        stem = raw
+          .replace(/^Writing\s+Task(\s*\([^)]*\))?\s*/i, "")
+          .replace(/^\n+/, "")
+          .trim();
+        return { passage: "", instruction: "", stem: stem || raw };
+      }
+
+      // 3) Standard pattern:
+      //    "Vocabulary 4: Choose the word closest …\n\nHer argument was compelling…"
+      //    "Grammar 1: Choose the correct option.\n\nIf she _____ harder…"
+      //    "Reading 3 (same passage): What do experts say about technology?"
+      stem = stripSectionPrefix(raw);
+
+      // Drop the fixed instruction paragraph; keep only the real stem body.
+      // Instruction = first block after "Section N:", body = remaining blocks.
+      if (stem.includes("\n\n")) {
+        const blocks = stem.split(/\n\n+/);
+        const head = blocks[0].trim();
+        const body = blocks.slice(1).join("\n\n").trim();
+        // Head is the fixed "Choose …" instruction (no blank line blanks / no fill-in)
+        const looksLikeInstruction =
+          body &&
+          head.length > 0 &&
+          head.length < 160 &&
+          !head.includes("_____") &&
+          /^(choose|select|pick|find|which|what|complete)\b/i.test(head);
+        if (looksLikeInstruction) {
+          stem = body;
         }
       }
 
-      // Final cleanup: if stem still starts with "Choose the correct option." on same line
+      // Safety: if prefix somehow remains mid-string at line start
       stem = stem
-        .replace(/^Choose the correct option\.?\s*/i, "")
-        .replace(/^(Grammar|Vocabulary|Reading|Writing)(\s+\d+)?(\s*\([^)]*\))?\s*:\s*/i, "")
+        .split("\n")
+        .map((line) => stripSectionPrefix(line))
+        .join("\n")
         .trim();
 
-      // For non-reading MCQ with empty stem fallback
-      if (!stem) stem = raw;
+      if (!stem) stem = stripSectionPrefix(raw) || raw;
+      return { passage, instruction: "", stem };
+    }
 
-      // Writing: keep helpful structure without "Writing Task" leak
-      if (q.type === "writing" && !instruction && stem.length > 40) {
-        // leave stem as-is after stripping Writing Task
-      }
-
-      // Don't show section name as instruction
-      if (instruction && /^(grammar|vocabulary|reading|writing)\b/i.test(instruction)) {
-        instruction = "";
-      }
-
-      return { passage, instruction, stem, section };
+    function stripSectionPrefix(text) {
+      return String(text || "").replace(SECTION_PREFIX_RE, "").trim();
     }
 
     function escapeHtml(s) {
