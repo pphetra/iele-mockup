@@ -1,0 +1,10 @@
+.env
+.env.local
+.env.*.local
+node_modules/
+.DS_Store
+
+# Daily eval agent outputs (student performance)
+agents/daily-eval/out/*
+!agents/daily-eval/out/.gitkeep
+logs/

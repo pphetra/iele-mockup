@@ -74,13 +74,31 @@ No login required.
 
 ## Parent workflow
 
-### Daily loop
+### Daily loop (manual)
 
 1. **Review** yesterday’s attempt (`./scripts/get-history.sh` or Supabase Table Editor)  
 2. **Write / edit** a test JSON (focus weak areas)  
 3. **Upload** before the student starts  
 4. Student takes the test  
 5. **Analyze** score, wrong items, and timing patterns  
+
+### Daily loop (automated evaluation agent)
+
+Grok can **fetch submissions → analyze timing/weak areas → generate tomorrow’s test → upload**.
+
+```bash
+# Full auto (headless Grok)
+./scripts/run-daily-eval.sh
+
+# Analyze + write files only
+DRY_RUN=1 ./scripts/run-daily-eval.sh
+
+# Keep long-term coach memory across days
+./scripts/run-daily-eval.sh --continue
+```
+
+Details, cron, and `/loop` scheduling: **[agents/daily-eval/README.md](agents/daily-eval/README.md)**  
+Agent instructions: **[agents/daily-eval/PROMPT.md](agents/daily-eval/PROMPT.md)**
 
 ### Upload a test
 
